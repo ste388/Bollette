@@ -729,11 +729,11 @@ async function eliminaBolletta(id) {
                         <td data-label="P. Unit.">€ ${bolletta.prezzoMedio.toFixed(4)}</td>
                         <td class="action-cell">
                             ${linkHtml}
-                            <button class="action-btn edit-btn" onclick="modificaBolletta(${bolletta.id})" title="Modifica">✏️</button>
-                            <button class="action-btn delete-btn" onclick="eliminaBolletta(${bolletta.id})" title="Elimina">🗑️</button>
-                        </td>
-                    </tr>
-                `;
+							  <button class="action-btn edit-btn" onclick="modificaBolletta('${bolletta.id}')" title="Modifica">✏️</button>
+							  <button class="action-btn delete-btn" onclick="eliminaBolletta('${bolletta.id}')" title="Elimina">🗑️</button>
+							</td>
+						  </tr>
+						`;
                 tbody.insertAdjacentHTML('beforeend', riga);
             });
 
