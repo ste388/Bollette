@@ -756,14 +756,15 @@ async function salvaBolletta(e) {
   } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
   // --- CONFIGURAZIONE ---
-  const firebaseConfig = {
-    apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI", // <--- RIMETTI LA TUA API KEY QUI
-    authDomain: "bollettea2a.firebaseapp.com",
-    projectId: "bollettea2a",
-    storageBucket: "bollettea2a.firebasestorage.app",
-    messagingSenderId: "714327541296",
-    appId: "1:714327541296:web:12e881c0799631ab230ff5"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI",
+  authDomain: "bollettea2a-c99a3.firebaseapp.com",
+  projectId: "bollettea2a-c99a3",
+  storageBucket: "bollettea2a-c99a3.firebasestorage.app",
+  messagingSenderId: "714327541296",
+  appId: "1:714327541296:web:12e881c0799631ab230ff5",
+  measurementId: "G-TQT1L3W7VM"
+};
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
