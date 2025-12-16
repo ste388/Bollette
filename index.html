@@ -792,6 +792,14 @@ const firebaseConfig = {
   window.salvaBolletta = async function(e) {
     if(e) e.preventDefault();
     
+	  console.log("Tentativo di salvataggio...");
+  
+  // Dati minimi per test
+  const bolletta = {
+    test: "Verifica connessione",
+    data: new Date().toISOString(),
+	
+	numero: document.getElementById('numBolletta').value || "TEST",
     const editId = document.getElementById('editId').value;
     const totale = parseFloat(document.getElementById('totalePagare').value);
     const consumo = parseFloat(document.getElementById('consumo').value);
@@ -808,20 +816,26 @@ const firebaseConfig = {
       link: document.getElementById('linkBolletta')?.value || ""
     };
 
-    try {
-      if (editId) {
-        await setDoc(doc(db, 'bollette_condivise', editId), bolletta);
-      } else {
-        await addDoc(collection(db, 'bollette_condivise'), bolletta);
-      }
-      console.log("Bolletta salvata!");
-      chiudiForm();
-      document.getElementById('formBolletta').reset();
-    } catch (error) {
-      console.error("Errore salvataggio:", error);
-      alert("Errore salvataggio: " + error.message);
-    }
-  };
+try {
+    // Timeout di sicurezza: se ci mette più di 5 secondi, c'è un problema di rete/config
+    const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout: Firestore non risponde. Controlla Config o Internet")), 5000)
+    );
+
+    const salvataggio = addDoc(collection(db, 'bollette_condivise'), bolletta);
+    
+    // Gara tra salvataggio e timeout
+    await Promise.race([salvataggio, timeout]);
+
+    alert("✅ SUCCESSO! Salvato nel Cloud.");
+    chiudiForm();
+    document.getElementById('formBolletta').reset();
+
+  } catch (error) {
+    console.error("ERRORE GRAVE:", error);
+    alert("❌ ERRORE: " + error.message);
+  }
+};
 
   window.eliminaBollettaSuCloud = async function(id) {
     try {
