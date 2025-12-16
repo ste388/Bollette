@@ -748,33 +748,6 @@ async function salvaBolletta(e) {
         }
     </script>
 	
-	// fuori da qualsiasi funzione e fuori dal blocco type="module":
-window.modificaBolletta = function(id) {
-  console.log('CLICK MODIFICA', id, listaBollette);
-  const bolletta = listaBollette.find(b => b.id === id);
-  if (!bolletta) return;
-  apriFormInserimento(); 
-  selezionaTipo(bolletta.tipo);
-  document.getElementById('form-title').textContent = "Modifica Bolletta";
-  document.getElementById('editId').value = bolletta.id;
-  document.getElementById('numBolletta').value = bolletta.numero;
-  document.getElementById('dataScadenza').value = bolletta.scadenza;
-  document.getElementById('periodo').value = bolletta.periodo;
-  document.getElementById('totalePagare').value = bolletta.totale;
-  document.getElementById('consumo').value = bolletta.consumo.toFixed(3);
-  document.getElementById('noteBolletta').value = bolletta.note || "";
-  document.getElementById('linkBolletta').value = bolletta.link || "";
-  calcolaMedia();
-};
-
-window.eliminaBolletta = async function(id) {
-  console.log('CLICK ELIMINA', id);
-  if(!confirm("Eliminare questa bolletta?")) return;
-  await eliminaBollettaSuCloud(id);
-};
-	
-	
-	
 <script type="module">
   // SDK modulari da CDN Firebase v9+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
