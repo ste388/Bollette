@@ -3,8 +3,8 @@ const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png',
   // IMPORTANTE: Cache delle librerie esterne per far funzionare il PDF reader offline
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js'
