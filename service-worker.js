@@ -1,62 +1,47 @@
-// Service Worker per PWA Timbrature
-const CACHE_NAME = 'Bollette A2A'; // Incrementato il nome della cache per forzare l'aggiornamento
+const CACHE_NAME = 'bollette-v2';
 const urlsToCache = [
-  './', // L'HTML principale (risoluzione root)
-  './index.html', // <--- AGGIORNATO: ora si chiama index.html
+  './',
+  './index.html',
   './manifest.json',
-  // Aggiungere qui i percorsi esatti delle icone (devono esistere!)
-  // '/icons/icon-192x192.png', 
-  // '/icons/icon-512x512.png',
-  // ... e tutte le altre icone e risorse importanti
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  // IMPORTANTE: Cache delle librerie esterne per far funzionare il PDF reader offline
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js'
 ];
 
-// Installa e Cache
-self.addEventListener('install', event => {
-  // L'installazione è un evento critico, aspettiamo che la cache sia popolata
+// Installazione: scarica i file
+self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache, adding critical resources.');
+      .then(function(cache) {
+        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
-      .catch(error => {
-          console.error('Failed to cache critical resources during install:', error);
-          // Non possiamo far fallire l'installazione PWA qui, ma lo logghiamo
-      })
   );
-  self.skipWaiting(); // Forza l'attivazione immediata
 });
 
-// Fetch (strategia cache-first per i file statici)
-self.addEventListener('fetch', event => {
-  // Ignora le richieste non-GET (es. POST)
-  if (event.request.method !== 'GET') {
-    return;
-  }
-  
-  // Cerchiamo nella cache per primi
+// Richiesta: serve i file dalla cache se disponibili
+self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        // Se troviamo una risposta in cache, la usiamo
+      .then(function(response) {
         if (response) {
           return response;
         }
-        // Altrimenti, andiamo alla rete
         return fetch(event.request);
       })
   );
 });
 
-// Attiva (cleanup vecchie cache)
-self.addEventListener('activate', event => {
+// Attivazione: pulisce vecchie cache se cambi versione
+self.addEventListener('activate', function(event) {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
-    caches.keys().then(cacheNames => {
+    caches.keys().then(function(cacheNames) {
       return Promise.all(
-        cacheNames.map(cacheName => {
+        cacheNames.map(function(cacheName) {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
