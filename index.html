@@ -781,10 +781,7 @@ window.eliminaBolletta = async function(id) {
   import { 
     getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot 
   } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-  import { 
-    getAuth, signInAnonymously, onAuthStateChanged 
-  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-
+  
   // CONFIG DEL TUO PROGETTO (quella che hai incollato)
   const firebaseConfig = {
     apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI",
@@ -798,8 +795,31 @@ window.eliminaBolletta = async function(id) {
 
   // Inizializza Firebase
   const app = initializeApp(firebaseConfig);                 // [web:41]
-  const db = getFirestore(app);                              // [web:21]
-  const auth = getAuth(app);                                 // [web:27]
+  const colRef = collection(db, 'bollette');  // collezione unica per tutti i device
+
+onSnapshot(colRef, snapshot => {
+  listaBollette = snapshot.docs.map(d => ({
+    id: d.id,
+    ...d.data()
+  }));
+  renderizzaTabella();
+  if (typeof popolaFiltroAnni === 'function') {
+    popolaFiltroAnni();
+  }
+});
+
+window.salvaBollettaSuCloud = async function(bolletta, editId) {
+  if (editId) {
+    await setDoc(doc(db, 'bollette', String(editId)), bolletta, { merge: true });
+  } else {
+    const ref = await addDoc(colRef, bolletta);
+    bolletta.id = ref.id;
+  }
+};
+
+window.eliminaBollettaSuCloud = async function(id) {
+  await deleteDoc(doc(db, 'bollette', String(id)));
+};                              // [web:21]
 
   // Login anonimo (un solo utente va benissimo)
   signInAnonymously(auth).catch(console.error);              // [web:27]
