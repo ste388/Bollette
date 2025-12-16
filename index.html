@@ -280,8 +280,24 @@
             }
         }
 
-        function salvaDatiLocali() {
-            localStorage.setItem('db_bollette_a2a', JSON.stringify(listaBollette));
+               function salvaDatiLocali() {
+            try {
+                const datiStringa = JSON.stringify(listaBollette);
+                localStorage.setItem('db_bollette_a2a', datiStringa);
+                
+                // Opzionale: piccolo feedback visivo console per debug
+                console.log("Salvataggio OK: " + listaBollette.length + " elementi.");
+            } catch (e) {
+                // Questo errore compare se sei in Navigazione Privata 
+                // o se la memoria è piena/disabilitata
+                if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+                    alert("⚠️ ATTENZIONE: Memoria piena o Navigazione Privata! I dati non verranno salvati se chiudi la pagina.");
+                } else if (e.name === 'SecurityError') {
+                    alert("⚠️ ATTENZIONE: Sicurezza Browser! Non puoi salvare dati se apri il file locale. Devi caricarlo su un server (es. GitHub Pages).");
+                } else {
+                    alert("Errore salvataggio: " + e.message);
+                }
+            }
         }
 
         // --- EXPORT / IMPORT FUNZIONI ---
