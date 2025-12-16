@@ -749,16 +749,13 @@ async function salvaBolletta(e) {
     </script>
 	
 <script type="module">
-  // --- 1. IMPORT FIREBASE ---
+  // --- IMPORT SOLO FIRESTORE ---
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import { 
     getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot 
   } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-  import { 
-    getAuth, signInAnonymously, onAuthStateChanged 
-  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 
-  // --- 2. CONFIGURAZIONE ---
+  // --- CONFIGURAZIONE ---
   const firebaseConfig = {
     apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI", // <--- RIMETTI LA TUA API KEY QUI
     authDomain: "bollettea2a.firebaseapp.com",
@@ -770,57 +767,36 @@ async function salvaBolletta(e) {
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const auth = getAuth(app);
-  let uid = null;
 
-  // --- 3. AUTENTICAZIONE E LISTENER ---
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-  //    uid = user.uid;
-      console.log("Utente connesso (anonimo):", user.uid);
-      
-      // Avvia l'ascolto dei dati in tempo reale
-      const colRef = collection(db, 'bollette_condivise'); 
-	  
-      onSnapshot(colRef, (snapshot) => {
-        listaBollette = snapshot.docs.map(d => ({
-          id: d.id, 
-          ...d.data()
-        }));
-        // Ordina per scadenza (opzionale)
-        listaBollette.sort((a, b) => new Date(b.scadenza) - new Date(a.scadenza));
-        
-        console.log("Dati ricevuti da Firestore:", listaBollette);
-        renderizzaTabella(); // Aggiorna la tabella a video
-      });
+  // --- LISTENER DIRETTO (Senza Auth) ---
+  console.log("Connessione a Firestore in corso...");
+  const colRef = collection(db, 'bollette_condivise'); // Collezione UNICA per tutti
 
-    } else {
-      console.log("Login anonimo in corso...");
-      signInAnonymously(auth).catch((error) => {
-        console.error("Errore Login:", error);
-        alert("Errore di connessione al database!");
-      });
-    }
+  onSnapshot(colRef, (snapshot) => {
+    listaBollette = snapshot.docs.map(d => ({
+      id: d.id, 
+      ...d.data()
+    }));
+    // Ordina per scadenza
+    listaBollette.sort((a, b) => new Date(b.scadenza) - new Date(a.scadenza));
+    
+    console.log("Dati scaricati:", listaBollette);
+    renderizzaTabella(); // Aggiorna la grafica
+  }, (error) => {
+    console.error("Errore di lettura:", error);
+    alert("Errore lettura dati: Controlla la Console o le Regole Firestore");
   });
 
-  // --- 4. FUNZIONI GLOBALI (Il "Ponte" per far funzionare i tasti) ---
-
-  // Funzione SALVA (quella che non ti andava)
+  // --- FUNZIONI GLOBALI ---
   window.salvaBolletta = async function(e) {
-    if(e) e.preventDefault(); // Blocca il refresh del form
+    if(e) e.preventDefault();
     
-    if (!uid) {
-      alert("Attendi... connessione al database in corso.");
-      return;
-    }
-
     const editId = document.getElementById('editId').value;
     const totale = parseFloat(document.getElementById('totalePagare').value);
     const consumo = parseFloat(document.getElementById('consumo').value);
 
-    // Costruisci l'oggetto
     const bolletta = {
-      tipo: tipoSelezionato, // Assicurati che questa variabile esista nel tuo JS principale
+      tipo: tipoSelezionato || "Luce", // Fallback se null
       numero: document.getElementById('numBolletta').value,
       scadenza: document.getElementById('dataScadenza').value,
       periodo: document.getElementById('periodo').value,
@@ -833,31 +809,25 @@ async function salvaBolletta(e) {
 
     try {
       if (editId) {
-        // MODIFICA
         await setDoc(doc(db, 'bollette_condivise', editId), bolletta);
       } else {
-        // NUOVO INSERIMENTO
         await addDoc(collection(db, 'bollette_condivise'), bolletta);
       }
-      
-      // Chiudi e pulisci
-      chiudiForm(); // Assicurati che questa esista nel tuo JS principale
-      document.getElementById('formBolletta').reset(); // Pulisce i campi
-      
+      console.log("Bolletta salvata!");
+      chiudiForm();
+      document.getElementById('formBolletta').reset();
     } catch (error) {
       console.error("Errore salvataggio:", error);
-      alert("Errore nel salvataggio: " + error.message);
+      alert("Errore salvataggio: " + error.message);
     }
   };
 
-  // Funzione ELIMINA
   window.eliminaBollettaSuCloud = async function(id) {
-    if(!uid) return;
     try {
       await deleteDoc(doc(db, 'bollette_condivise', String(id)));
     } catch (err) {
       console.error("Errore eliminazione:", err);
-      alert("Impossibile eliminare: " + err.message);
+      alert("Errore eliminazione: " + err.message);
     }
   };
 </script>
