@@ -749,62 +749,118 @@ async function salvaBolletta(e) {
     </script>
 	
 <script type="module">
-  // SDK modulari da CDN Firebase v9+
+  // --- 1. IMPORT FIREBASE ---
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import { 
     getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot 
   } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  import { 
+    getAuth, signInAnonymously, onAuthStateChanged 
+  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 
-  // Config del progetto
+  // --- 2. CONFIGURAZIONE ---
   const firebaseConfig = {
-    apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI",
-    authDomain: "bollettea2a-c99a3.firebaseapp.com",
-    projectId: "bollettea2a-c99a3",
-    storageBucket: "bollettea2a-c99a3.firebasestorage.app",
+    apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI", // <--- RIMETTI LA TUA API KEY QUI
+    authDomain: "bollettea2a.firebaseapp.com",
+    projectId: "bollettea2a",
+    storageBucket: "bollettea2a.firebasestorage.app",
     messagingSenderId: "714327541296",
-    appId: "1:714327541296:web:12e881c0799631ab230ff5",
-    measurementId: "G-TQT1L3W7VM"
+    appId: "1:714327541296:web:12e881c0799631ab230ff5"
   };
 
-  // Inizializza Firebase
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
+  let uid = null;
 
-  // Collezione unica per tutti i device
-  const colRef = collection(db, 'bollette');
+  // --- 3. AUTENTICAZIONE E LISTENER ---
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      uid = user.uid;
+      console.log("Utente connesso:", uid);
+      
+      // Avvia l'ascolto dei dati in tempo reale
+      const colRef = collection(db, 'users', uid, 'bollette');
+      onSnapshot(colRef, (snapshot) => {
+        listaBollette = snapshot.docs.map(d => ({
+          id: d.id, 
+          ...d.data()
+        }));
+        // Ordina per scadenza (opzionale)
+        listaBollette.sort((a, b) => new Date(b.scadenza) - new Date(a.scadenza));
+        
+        console.log("Dati ricevuti da Firestore:", listaBollette);
+        renderizzaTabella(); // Aggiorna la tabella a video
+      });
 
-  // SYNC FIRESTORE → listaBollette → UI
-  onSnapshot(colRef, snapshot => {
-    listaBollette = snapshot.docs.map(d => ({
-      id: d.id,
-      ...d.data()
-    }));
-    renderizzaTabella();
-    if (typeof popolaFiltroAnni === 'function') {
-      popolaFiltroAnni();
+    } else {
+      console.log("Login anonimo in corso...");
+      signInAnonymously(auth).catch((error) => {
+        console.error("Errore Login:", error);
+        alert("Errore di connessione al database!");
+      });
     }
   });
 
-  // FUNZIONI FIRESTORE WRAPPER (globali)
-  window.salvaBollettaSuCloud = async function(bolletta, editId) {
-    if (editId) {
-      // update documento esistente
-      await setDoc(
-        doc(db, 'bollette', String(editId)),
-        bolletta,
-        { merge: true }
-      );
-    } else {
-      // nuova bolletta, Firestore genera un id
-      const ref = await addDoc(colRef, bolletta);
-      bolletta.id = ref.id;
+  // --- 4. FUNZIONI GLOBALI (Il "Ponte" per far funzionare i tasti) ---
+
+  // Funzione SALVA (quella che non ti andava)
+  window.salvaBolletta = async function(e) {
+    if(e) e.preventDefault(); // Blocca il refresh del form
+    
+    if (!uid) {
+      alert("Attendi... connessione al database in corso.");
+      return;
+    }
+
+    const editId = document.getElementById('editId').value;
+    const totale = parseFloat(document.getElementById('totalePagare').value);
+    const consumo = parseFloat(document.getElementById('consumo').value);
+
+    // Costruisci l'oggetto
+    const bolletta = {
+      tipo: tipoSelezionato, // Assicurati che questa variabile esista nel tuo JS principale
+      numero: document.getElementById('numBolletta').value,
+      scadenza: document.getElementById('dataScadenza').value,
+      periodo: document.getElementById('periodo').value,
+      totale: totale,
+      consumo: consumo,
+      prezzoMedio: (consumo > 0) ? (totale / consumo) : 0,
+      note: document.getElementById('noteBolletta')?.value || "",
+      link: document.getElementById('linkBolletta')?.value || ""
+    };
+
+    try {
+      if (editId) {
+        // MODIFICA
+        await setDoc(doc(db, 'users', uid, 'bollette', editId), bolletta);
+      } else {
+        // NUOVO INSERIMENTO
+        await addDoc(collection(db, 'users', uid, 'bollette'), bolletta);
+      }
+      
+      // Chiudi e pulisci
+      chiudiForm(); // Assicurati che questa esista nel tuo JS principale
+      document.getElementById('formBolletta').reset(); // Pulisce i campi
+      
+    } catch (error) {
+      console.error("Errore salvataggio:", error);
+      alert("Errore nel salvataggio: " + error.message);
     }
   };
 
+  // Funzione ELIMINA
   window.eliminaBollettaSuCloud = async function(id) {
-    await deleteDoc(doc(db, 'bollette', String(id)));
+    if(!uid) return;
+    try {
+      await deleteDoc(doc(db, 'users', uid, 'bollette', String(id)));
+    } catch (err) {
+      console.error("Errore eliminazione:", err);
+      alert("Impossibile eliminare: " + err.message);
+    }
   };
 </script>
+
 
 
 	
