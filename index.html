@@ -754,8 +754,8 @@ async function salvaBolletta(e) {
   import { 
     getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot 
   } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-  
-  // CONFIG DEL TUO PROGETTO (quella che hai incollato)
+
+  // Config del progetto
   const firebaseConfig = {
     apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI",
     authDomain: "bollettea2a-c99a3.firebaseapp.com",
@@ -767,77 +767,45 @@ async function salvaBolletta(e) {
   };
 
   // Inizializza Firebase
-  const app = initializeApp(firebaseConfig);                 // [web:41]
-  const colRef = collection(db, 'bollette');  // collezione unica per tutti i device
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-onSnapshot(colRef, snapshot => {
-  listaBollette = snapshot.docs.map(d => ({
-    id: d.id,
-    ...d.data()
-  }));
-  renderizzaTabella();
-  if (typeof popolaFiltroAnni === 'function') {
-    popolaFiltroAnni();
-  }
-});
+  // Collezione unica per tutti i device
+  const colRef = collection(db, 'bollette');
 
-window.salvaBollettaSuCloud = async function(bolletta, editId) {
-  if (editId) {
-    await setDoc(doc(db, 'bollette', String(editId)), bolletta, { merge: true });
-  } else {
-    const ref = await addDoc(colRef, bolletta);
-    bolletta.id = ref.id;
-  }
-};
-
-window.eliminaBollettaSuCloud = async function(id) {
-  await deleteDoc(doc(db, 'bollette', String(id)));
-};                              // [web:21]
-
-  // Login anonimo (un solo utente va benissimo)
-  signInAnonymously(auth).catch(console.error);              // [web:27]
-
-  onAuthStateChanged(auth, user => {
-    if (!user) return;
-    const uid = user.uid;
-
-    // Collezione dove salviamo le bollette di questo utente
-    const colRef = collection(db, 'users', uid, 'bollette'); // [web:21][web:22]
-
-    // --- SYNC FIRESTORE → listaBollette → UI ---
-    // Sostituisce il vecchio caricaDatiLocali() iniziale
-    onSnapshot(colRef, snapshot => {                         // realtime sync [web:22][web:26]
-      listaBollette = snapshot.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-      }));
-      renderizzaTabella();
-      if (typeof popolaFiltroAnni === 'function') {
-        popolaFiltroAnni();
-      }
-    });
-
-    // --- FUNZIONI FIRESTORE WRAPPER (usate dal tuo codice esistente) ---
-    window.salvaBollettaSuCloud = async function(bolletta, editId) {
-      if (editId) {
-        // update documento esistente
-        await setDoc(
-          doc(db, 'users', uid, 'bollette', String(editId)), 
-          bolletta, 
-          { merge: true }
-        );                                                   // [web:24]
-      } else {
-        // nuova bolletta, Firestore genera un id
-        const ref = await addDoc(colRef, bolletta);          // [web:24]
-        bolletta.id = ref.id;
-      }
-    };
-
-    window.eliminaBollettaSuCloud = async function(id) {
-      await deleteDoc(doc(db, 'users', uid, 'bollette', String(id))); // [web:22]
-    };
+  // SYNC FIRESTORE → listaBollette → UI
+  onSnapshot(colRef, snapshot => {
+    listaBollette = snapshot.docs.map(d => ({
+      id: d.id,
+      ...d.data()
+    }));
+    renderizzaTabella();
+    if (typeof popolaFiltroAnni === 'function') {
+      popolaFiltroAnni();
+    }
   });
+
+  // FUNZIONI FIRESTORE WRAPPER (globali)
+  window.salvaBollettaSuCloud = async function(bolletta, editId) {
+    if (editId) {
+      // update documento esistente
+      await setDoc(
+        doc(db, 'bollette', String(editId)),
+        bolletta,
+        { merge: true }
+      );
+    } else {
+      // nuova bolletta, Firestore genera un id
+      const ref = await addDoc(colRef, bolletta);
+      bolletta.id = ref.id;
+    }
+  };
+
+  window.eliminaBollettaSuCloud = async function(id) {
+    await deleteDoc(doc(db, 'bollette', String(id)));
+  };
 </script>
+
 
 	
 </body>
