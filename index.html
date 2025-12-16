@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- ICONA DEL SITO (Favicon) -->
+<link rel="icon" type="image/x-icon" href="ico.ico">
+
+<!-- CONFIGURAZIONE PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0056b3">
+
+<!-- SUPPORTO iOS (Apple) -->
+<!-- Qui mettiamo il nome corretto del tuo file PNG -->
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+	
+    <!-- Libreria PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+
+    <style>
+        :root { 
+            --primary: #0056b3; 
+            --bg-light: #f4f4f9; 
+            --border: #ddd; 
+            --danger: #dc3545; 
+            --success: #28a745; 
+            --warning: #ffc107; 
+            --dark: #333;
+            --info: #17a2b8;
+        }
+        
+        * { box-sizing: border-box; } /* Gestione migliore delle dimensioni */
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 15px; 
+            background: var(--bg-light); 
+            color: var(--dark); 
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* --- TOP BAR --- */
+        .top-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            flex-wrap: wrap; 
+            gap: 15px; 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+        }
+        
+        .top-left { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .top-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+        h2 { margin: 0; color: var(--primary); font-size: 1.5em; }
+
+        .btn-new { background-color: var(--success); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1em; display: flex; align-items: center; gap: 5px; }
+        .btn-new:hover { background-color: #218838; }
+
+        /* Pulsanti Backup */
+        .btn-backup { background-color: white; border: 1px solid var(--border); color: #555; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .btn-backup:hover { background-color: #e9ecef; color: var(--dark); border-color: #bbb; }
+        .backup-group { display: flex; gap: 5px; padding-left: 10px; border-left: 1px solid #eee; }
+
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-label { font-size: 0.75em; color: #666; font-weight: bold; margin-bottom: 2px; }
+        .filter-select { padding: 8px; border: 1px solid var(--border); border-radius: 5px; font-size: 0.95em; cursor: pointer; background-color: #f8f9fa; min-width: 120px; }
+
+        /* --- FORM CONTAINER --- */
+        #form-wrapper { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 30px; border-left: 5px solid var(--primary); }
+        
+        .form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-btn { background: none; border: none; font-size: 2em; line-height: 1; cursor: pointer; color: #999; padding: 0 10px; }
+        
+        .type-selector { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; flex-wrap: wrap; }
+        .type-btn { padding: 8px 20px; border: 2px solid var(--primary); background: white; cursor: pointer; font-weight: bold; border-radius: 20px; transition: 0.2s; flex: 1; text-align: center; white-space: nowrap; }
+        .type-btn.active { background: var(--primary); color: white; }
+
+        .pdf-section { border: 2px dashed #aecbfa; padding: 20px; text-align: center; margin-bottom: 20px; background: #f8fbff; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .full-width { grid-column: span 2; }
+        
+        label { margin-bottom: 5px; font-size: 0.85em; color: #666; font-weight: 600; }
+        input, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 1em; font-family: inherit; -webkit-appearance: none; } /* -webkit-appearance per iOS */
+        
+        textarea { resize: vertical; min-height: 80px; }
+
+        .save-btn { grid-column: span 2; margin-top: 10px; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1.1em; font-weight: bold; }
+
+        /* --- TABLE --- */
+        .table-container { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; color: #444; font-weight: 700; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px; }
+        
+        tfoot tr { background-color: #e3e8ee; border-top: 2px solid var(--primary); font-weight: bold; }
+        tfoot td { color: var(--primary); font-size: 1.1em; }
+        
+        .tag { padding: 5px 10px; border-radius: 15px; font-size: 0.8em; font-weight: bold; color: white; display: inline-block; min-width: 60px; text-align: center; }
+        .tag-Energia { background-color: #f1c40f; color: #333; }
+        .tag-Gas { background-color: #e67e22; }
+        .tag-Acqua { background-color: #3498db; }
+        
+        .action-btn { border: none; background: none; padding: 5px 10px; cursor: pointer; font-size: 1.2em; }
+        .edit-btn { color: var(--warning); }
+        .delete-btn { color: var(--danger); }
+        .link-btn { color: #0066cc; text-decoration: none; font-size: 1.3em; margin-right: 5px;}
+        
+        .empty-state { text-align: center; padding: 40px; color: #888; font-style: italic; }
+        .fattura-id { font-family: monospace; font-weight: bold; color: #666; background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        .note-text { font-size: 0.9em; color: #666; font-style: italic; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* --- MEDIA QUERIES PER MOBILE (Smartphone) --- */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+
+            /* Top Bar Mobile */
+            .top-bar { flex-direction: column; align-items: stretch; gap: 20px; }
+            .top-left { flex-direction: column; width: 100%; gap: 10px; }
+            .backup-group { border-left: none; padding-left: 0; display: flex; justify-content: center; width: 100%; border-top: 1px solid #eee; padding-top: 10px;}
+            .btn-new { width: 100%; justify-content: center; padding: 15px; }
+            
+            .top-controls { flex-direction: column; align-items: stretch; }
+            .filter-group { width: 100%; }
+            .filter-select { width: 100%; padding: 12px; }
+
+            /* Form Mobile */
+            .form-grid { grid-template-columns: 1fr; } /* Una colonna sola */
+            .full-width { grid-column: span 1; }
+            
+            /* TABELLA RESPONSIVE (Card View) */
+            table, thead, tbody, th, td, tr { display: block; }
+            
+            /* Nascondi header tabella classica */
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            
+            tr { margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            
+            td { 
+                border: none;
+                border-bottom: 1px solid #eee; 
+                position: relative;
+                padding-left: 50%; /* Spazio per etichetta */
+                text-align: right; /* Valore a destra */
+                padding-top: 12px;
+                padding-bottom: 12px;
+            }
+            
+            td:last-child { border-bottom: none; text-align: center; padding-left: 10px; background: #f9f9f9; border-radius: 0 0 8px 8px;}
+            
+            /* Etichette finte (Pseudo-elements) */
+            td::before { 
+                position: absolute;
+                top: 12px;
+                left: 15px;
+                width: 45%; 
+                padding-right: 10px; 
+                white-space: nowrap;
+                text-align: left;
+                font-weight: bold;
+                color: #555;
+                content: attr(data-label); /* Prende il testo dall'attributo HTML */
+            }
+
+            /* Footer totali in versione mobile */
+            tfoot tr { display: flex; flex-direction: column; text-align: center; padding: 15px; background: #e3e8ee; border-radius: 8px; margin-top: 20px; border: 2px solid var(--primary); }
+            tfoot td { padding: 5px; text-align: center; border: none; padding-left: 0; }
+            tfoot td::before { position: static; display: block; text-align: center; margin-bottom: 2px; }
+            
+            /* Nascondi la label "Totali Filtrati" standard e rendila visibile diversamente se serve */
+            tfoot td:first-child { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <div class="top-left">
+            <h2>📂 Archivio</h2>
+            <button class="btn-new" onclick="apriFormInserimento()">➕ Nuova Bolletta</button>
+            
+            <div class="backup-group">
+                <button class="btn-backup" onclick="esportaDati()">⬇️ Export</button>
+                <button class="btn-backup" onclick="document.getElementById('fileImport').click()">⬆️ Import</button>
+                <input type="file" id="fileImport" accept=".json" style="display:none" onchange="importaDati(this)">
+            </div>
+        </div>
+        
+        <div class="top-controls">
+            <div class="filter-group">
+                <span class="filter-label">TIPO UTENZA</span>
+                <select id="filtroTipo" class="filter-select" onchange="renderizzaTabella()">
+                    <option value="Tutti">👁️ Tutti</option>
+                    <option value="Energia">💡 Energia</option>
+                    <option value="Gas">🔥 Gas</option>
+                    <option value="Acqua">💧 Acqua</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">ANNO</span>
+                <select id="filtroAnno" class="filter-select" onchange="renderizzaTabella()">
+                    <option value="Tutti">📅 Tutti</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">MESE</span>
+                <select id="filtroMese" class="filter-select" onchange="renderizzaTabella()">
+                    <option value="Tutti">🗓️ Tutti</option>
+                    <option value="01">Gennaio</option>
+                    <option value="02">Febbraio</option>
+                    <option value="03">Marzo</option>
+                    <option value="04">Aprile</option>
+                    <option value="05">Maggio</option>
+                    <option value="06">Giugno</option>
+                    <option value="07">Luglio</option>
+                    <option value="08">Agosto</option>
+                    <option value="09">Settembre</option>
+                    <option value="10">Ottobre</option>
+                    <option value="11">Novembre</option>
+                    <option value="12">Dicembre</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM DI INSERIMENTO -->
+    <div id="form-wrapper">
+        <div class="form-header">
+            <h3 id="form-title" style="margin:0;">Inserisci Bolletta</h3>
+            <button class="close-btn" onclick="chiudiForm()" title="Chiudi">×</button>
+        </div>
+
+        <div class="type-selector">
+            <button class="type-btn active" onclick="selezionaTipo('Energia', this)">💡 Energia</button>
+            <button class="type-btn" onclick="selezionaTipo('Gas', this)">🔥 Gas</button>
+            <button class="type-btn" onclick="selezionaTipo('Acqua', this)">💧 Acqua</button>
+        </div>
+
+        <div class="pdf-section" onclick="document.getElementById('filePdf').click()">
+            <div style="font-size: 2em; margin-bottom: 5px;">📄</div>
+            <strong>Carica PDF (Auto-Lettura)</strong>
+            <p style="font-size:0.8em; color:#888; margin:5px 0 0 0;">Tocca qui per selezionare il file</p>
+            <input type="file" id="filePdf" accept=".pdf" style="display:none" onchange="gestisciFilePDF(this)">
+            <div id="statusMsg" class="status-msg">Nessun file selezionato</div>
+        </div>
+        
+        <form id="bollettaForm" onsubmit="salvaBolletta(event)">
+            <input type="hidden" id="editId" value="">
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Numero Fattura</label>
+                    <input type="text" id="numBolletta" required placeholder="Es. 2025...">
+                </div>
+                <div class="form-group">
+                    <label>Data Scadenza</label>
+                    <input type="date" id="dataScadenza" required>
+                </div>
+                <div class="form-group full-width">
+                    <label>Periodo di Riferimento</label>
+                    <input type="text" id="periodo" placeholder="Es. 01/01/2024 - 31/01/2024">
+                </div>
+                <div class="form-group">
+                    <label>Totale da Pagare (€)</label>
+                    <input type="number" step="0.01" id="totalePagare" oninput="calcolaMedia()" required>
+                </div>
+                <div class="form-group">
+                    <label>Consumo Fatturato (<span id="unitaMisura">kWh</span>)</label>
+                    <input type="number" step="0.001" id="consumo" oninput="calcolaMedia()" required>
+                </div>
+                <div class="form-group">
+                    <label>Prezzo Medio Unitario (€)</label>
+                    <input type="text" id="prezzoMedio" readonly>
+                </div>
+                
+                <div class="form-group full-width">
+                    <label>Link PDF (Google Drive / Cloud)</label>
+                    <input type="url" id="linkBolletta" placeholder="https://drive.google.com...">
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Note / Commenti</label>
+                    <textarea id="noteBolletta" placeholder="Es. Conguaglio, pagata in ritardo..."></textarea>
+                </div>
+                
+                <button type="submit" class="save-btn" id="btnSalva">💾 Salva Bolletta</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- TABELLA DATI -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>N. Fattura</th>
+                    <th>Tipo</th>
+                    <th>Scadenza</th>
+                    <th>Periodo</th>
+                    <th>Note</th>
+                    <th>Consumo</th>
+                    <th>Totale</th>
+                    <th>P. Unit.</th>
+                    <th style="text-align: right;">Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="tabellaBody"></tbody>
+            <tfoot id="tabellaFooter" style="display:none;">
+                <tr>
+                    <td colspan="5" style="text-align: right; color: #555;">TOTALI FILTRATI:</td>
+                    <td id="footConsumo" data-label="Tot. Consumo">0</td>
+                    <td id="footTotale" data-label="Tot. Spesa">€ 0.00</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none;">
+            Nessuna bolletta trovata con questi filtri.
+        </div>
+    </div>
+
+    <script>
+	
+	if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
+      console.log('ServiceWorker registration successful with scope: ', registration.scope);
+    }, function(err) {
+      console.log('ServiceWorker registration failed: ', err);
+    });
+  });
+}
+	
+        // --- STATO APPLICAZIONE ---
+        let tipoSelezionato = 'Energia'; 
+        let listaBollette = [];
+        const mesiMap = { 'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04', 'maggio': '05', 'giugno': '06', 'luglio': '07', 'agosto': '08', 'settembre': '09', 'ottobre': '10', 'novembre': '11', 'dicembre': '12' };
+
+        window.onload = function() {
+
+            popolaFiltroAnni(); 
+            renderizzaTabella();
+        };
+
+        function caricaDatiLocali() {
+            const saved = localStorage.getItem('db_bollette_a2a');
+            if (saved) {
+                listaBollette = JSON.parse(saved);
+            }
+        }
+
+        function salvaDatiLocali() {
+            localStorage.setItem('db_bollette_a2a', JSON.stringify(listaBollette));
+        }
+
+        // --- EXPORT / IMPORT FUNZIONI ---
+        function esportaDati() {
+            if(listaBollette.length === 0) {
+                alert("Non ci sono dati da esportare!");
+                return;
+            }
+            const dataStr = JSON.stringify(listaBollette, null, 2);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            const dataOggi = new Date().toISOString().slice(0,10);
+            a.href = url;
+            a.download = `backup_bollette_${dataOggi}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importaDati(input) {
+            const file = input.files[0];
+            if(!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const datiImportati = JSON.parse(e.target.result);
+                    if(Array.isArray(datiImportati)) {
+                        if(confirm(`Trovate ${datiImportati.length} bollette. Vuoi sovrascrivere l'archivio attuale?`)) {
+                            listaBollette = datiImportati;
+                            salvaDatiLocali();
+                            popolaFiltroAnni();
+                            renderizzaTabella();
+                            alert("Importazione completata con successo!");
+                        }
+                    } else {
+                        alert("Il file non è valido (formato errato).");
+                    }
+                } catch(err) {
+                    console.error(err);
+                    alert("Errore nella lettura del file JSON.");
+                }
+            };
+            reader.readAsText(file);
+            input.value = ''; 
+        }
+
+        // --- POPOLA FILTRO ANNI ---
+        function popolaFiltroAnni() {
+            const selectAnno = document.getElementById('filtroAnno');
+            const annoCorrente = new Date().getFullYear();
+            const anniPresenti = new Set(listaBollette.map(b => b.scadenza.split('-')[0]));
+            anniPresenti.add(annoCorrente.toString()); 
+            while (selectAnno.options.length > 1) { selectAnno.remove(1); }
+            const anniOrdinati = Array.from(anniPresenti).sort().reverse();
+            anniOrdinati.forEach(anno => {
+                const option = document.createElement('option');
+                option.value = anno;
+                option.text = anno;
+                selectAnno.add(option);
+            });
+        }
+
+        // --- GESTIONE INTERFACCIA ---
+        function apriFormInserimento() {
+            document.getElementById('form-wrapper').style.display = 'block';
+            document.getElementById('editId').value = ""; 
+            document.getElementById('btnSalva').textContent = "💾 Salva Bolletta";
+            document.getElementById('form-title').textContent = "Inserisci Nuova Bolletta";
+            document.getElementById('bollettaForm').reset();
+            selezionaTipo('Energia'); 
+            document.getElementById('filePdf').value = '';
+            document.getElementById('statusMsg').textContent = 'Nessun file selezionato';
+            document.getElementById('form-wrapper').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function chiudiForm() {
+            document.getElementById('form-wrapper').style.display = 'none';
+        }
+
+        function selezionaTipo(tipo, btnElement = null) {
+            tipoSelezionato = tipo;
+            if (btnElement) {
+                document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+                btnElement.classList.add('active');
+            } else {
+                document.querySelectorAll('.type-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if(btn.textContent.includes(tipo)) btn.classList.add('active');
+                });
+            }
+            let unita = 'kWh';
+            if (tipo === 'Gas') unita = 'Smc';
+            if (tipo === 'Acqua') unita = 'mc';
+            document.getElementById('unitaMisura').textContent = unita;
+        }
+
+        function calcolaMedia() {
+            const totale = parseFloat(document.getElementById('totalePagare').value);
+            const consumo = parseFloat(document.getElementById('consumo').value);
+            const campoMedia = document.getElementById('prezzoMedio');
+            if (totale && consumo && consumo > 0) {
+                campoMedia.value = (totale / consumo).toFixed(4);
+            } else {
+                campoMedia.value = '';
+            }
+        }
+
+        // --- HELPER DI PARSING ---
+        const parseItaFloat = (str) => (!str) ? 0 : parseFloat(str.replace(/\./g, '').replace(',', '.'));
+        const parseDataTestuale = (g, m, a) => {
+            const mn = mesiMap[m.toLowerCase()];
+            return mn ? `${a}-${mn}-${g.padStart(2, '0')}` : null;
+        };
+        const formatDataIta = (g, m, a) => {
+            const mn = mesiMap[m.toLowerCase()];
+            return `${g}/${mn}/${a}`;
+        };
+        const parseDataNumerica = (dataStr) => {
+            const parti = dataStr.split('/');
+            if (parti.length < 3) return "";
+            let anno = parti[2];
+            if (anno.length === 2) anno = "20" + anno; 
+            return `${anno}-${parti[1]}-${parti[0]}`;
+        };
+
+        // --- LOGICA ESTRAZIONE ---
+        function trovaTotaleSmart(text) {
+            let labelVal = 0;
+            const matchLabel = text.match(/totale\s+da\s+pagare\s.*?(?:€|euro)?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{0,2})?)/i);
+            if(matchLabel && matchLabel[1]) labelVal = parseItaFloat(matchLabel[1]);
+            let maxVal = 0;
+            const regexValuta = /\b\d{1,3}(?:\.\d{3})*,\d{2}\b/g;
+            let m;
+            while ((m = regexValuta.exec(text)) !== null) {
+                let v = parseItaFloat(m[0]);
+                if(v > maxVal && v < 3000 && v > 5) maxVal = v;
+            }
+            if (labelVal > 15) return labelVal; 
+            if (labelVal > 0 && labelVal <= 15 && maxVal > 30) return maxVal;
+            return maxVal;
+        }
+
+        function trovaConsumoFatturato(text, unita) {
+            const marker = "quota per consumi";
+            const idx = text.toLowerCase().indexOf(marker);
+            if (idx === -1) {
+                const regexFallback = new RegExp(`(\\d{1,4}(?:\\.\\d{3})*(?:,\\d+)?)\\s*${unita}`, 'i');
+                const match = text.match(regexFallback);
+                return match ? parseItaFloat(match[1]).toFixed(3) : null;
+            }
+            const subText = text.substring(idx, idx + 1000);
+            const regex = new RegExp(`(\\d{1,4}(?:\\.\\d{3})*(?:,\\d+)?)\\s*${unita}`, 'gi');
+            let match;
+            let total = 0;
+            let count = 0;
+            while ((match = regex.exec(subText)) !== null) {
+                let val = parseItaFloat(match[1]);
+                if (val < 5000) { total += val; count++; }
+            }
+            if (count > 0) return total.toFixed(3);
+            return null;
+        }
+
+        // --- PDF HANDLER ---
+        async function gestisciFilePDF(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const status = document.getElementById('statusMsg');
+            status.textContent = "⏳ Analisi PDF in corso...";
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                let fullText = "";
+                for (let i = 1; i <= Math.min(pdf.numPages, 2); i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    fullText += textContent.items.map(item => item.str).join('___') + " ";
+                }
+                status.textContent = "✅ Dati estratti!";
+                const cleanText = fullText.replace(/___/g, ' ').replace(/\s+/g, ' '); 
+
+                if (tipoSelezionato === 'Energia') analizzaEnergia(cleanText);
+                else if (tipoSelezionato === 'Gas') analizzaGas(cleanText);
+                else if (tipoSelezionato === 'Acqua') analizzaAcqua(cleanText);
+            } catch (error) {
+                console.error(error);
+                status.textContent = "❌ Errore lettura PDF";
+            }
+        }
+
+        function analizzaEnergia(text) {
+            const matchScad = text.match(/entro\s+il\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/i);
+            if(matchScad) document.getElementById('dataScadenza').value = parseDataTestuale(matchScad[1], matchScad[2], matchScad[3]);
+            const matchNum = text.match(/\b([54]\d{11})\b/);
+            if(matchNum) document.getElementById('numBolletta').value = matchNum[1];
+            const matchPeriodo = text.match(/dal\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})\s+al\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/i);
+            if (matchPeriodo) {
+                const i = formatDataIta(matchPeriodo[1], matchPeriodo[2], matchPeriodo[3]);
+                const f = formatDataIta(matchPeriodo[4], matchPeriodo[5], matchPeriodo[6]);
+                document.getElementById('periodo').value = `${i} - ${f}`;
+            }
+            const tot = trovaTotaleSmart(text);
+            if(tot > 0) document.getElementById('totalePagare').value = tot;
+            const cons = trovaConsumoFatturato(text, 'kWh');
+            if(cons) document.getElementById('consumo').value = cons;
+            calcolaMedia();
+        }
+
+        function analizzaGas(text) {
+            const matchScad = text.match(/entro\s+il\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/i);
+            if(matchScad) document.getElementById('dataScadenza').value = parseDataTestuale(matchScad[1], matchScad[2], matchScad[3]);
+            const matchNum = text.match(/\b([54]\d{11})\b/);
+            if(matchNum) document.getElementById('numBolletta').value = matchNum[1];
+            const matchPeriodo = text.match(/dal\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})\s+al\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/i);
+            if (matchPeriodo) {
+                const i = formatDataIta(matchPeriodo[1], matchPeriodo[2], matchPeriodo[3]);
+                const f = formatDataIta(matchPeriodo[4], matchPeriodo[5], matchPeriodo[6]);
+                document.getElementById('periodo').value = `${i} - ${f}`;
+            }
+            const tot = trovaTotaleSmart(text);
+            if(tot > 0) document.getElementById('totalePagare').value = tot;
+            const cons = trovaConsumoFatturato(text, 'Smc');
+            if(cons) document.getElementById('consumo').value = cons;
+            calcolaMedia();
+        }
+
+        function analizzaAcqua(text) {
+            const matchEntroQuandoTxt = text.match(/entro\s+quando\??.*?(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/i);
+            const matchEntroQuandoNum = text.match(/entro\s+quando\??.*?(\d{2}\/\d{2}\/\d{2,4})/i);
+            const matchEntroIl = text.match(/entro\s+il\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/i);
+            
+            if (matchEntroQuandoTxt) document.getElementById('dataScadenza').value = parseDataTestuale(matchEntroQuandoTxt[1], matchEntroQuandoTxt[2], matchEntroQuandoTxt[3]);
+            else if (matchEntroQuandoNum) document.getElementById('dataScadenza').value = parseDataNumerica(matchEntroQuandoNum[1]);
+            else if (matchEntroIl) document.getElementById('dataScadenza').value = parseDataTestuale(matchEntroIl[1], matchEntroIl[2], matchEntroIl[3]);
+
+            const matchNum = text.match(/\b(20\d{11,})\b/);
+            if(matchNum) document.getElementById('numBolletta').value = matchNum[1];
+            const matchPeriodo = text.match(/dal\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})\s+al\s+(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/i);
+            if (matchPeriodo) {
+                const i = formatDataIta(matchPeriodo[1], matchPeriodo[2], matchPeriodo[3]);
+                const f = formatDataIta(matchPeriodo[4], matchPeriodo[5], matchPeriodo[6]);
+                document.getElementById('periodo').value = `${i} - ${f}`;
+            }
+            const matchTotBoll = text.match(/totale\s+(?:della\s+)?bolletta\s.*?(\d{1,3}(?:\.\d{3})*,\d{2})/i);
+            if(matchTotBoll) document.getElementById('totalePagare').value = parseItaFloat(matchTotBoll[1]);
+            else {
+                const tot = trovaTotaleSmart(text);
+                if(tot > 0) document.getElementById('totalePagare').value = tot;
+            }
+            const matchCons = text.match(/(\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s*mc/i);
+            if(matchCons) document.getElementById('consumo').value = parseItaFloat(matchCons[1]).toFixed(3);
+            calcolaMedia();
+        }
+
+        // --- CRUD ---
+async function salvaBolletta(e) {
+  e.preventDefault();
+  const editId = document.getElementById('editId').value;
+  const totale = parseFloat(document.getElementById('totalePagare').value);
+  const consumo = parseFloat(document.getElementById('consumo').value);
+
+  const bolletta = {
+    tipo: tipoSelezionato,
+    numero: document.getElementById('numBolletta').value,
+    scadenza: document.getElementById('dataScadenza').value,
+    periodo: document.getElementById('periodo').value,
+    totale: totale,
+    consumo: consumo,
+    prezzoMedio: (consumo > 0) ? (totale / consumo) : 0,
+    note: document.getElementById('noteBolletta')?.value || "",
+    link: document.getElementById('linkBolletta')?.value || ""
+  };
+
+  await salvaBollettaSuCloud(bolletta, editId || null); // usa Firestore
+  chiudiForm();
+  // NON chiamare renderizzaTabella(): ci pensa onSnapshot
+}
+
+
+        function modificaBolletta(id) {
+            const bolletta = listaBollette.find(b => b.id === id);
+            if (!bolletta) return;
+            apriFormInserimento(); 
+            selezionaTipo(bolletta.tipo);
+            document.getElementById('form-title').textContent = "Modifica Bolletta";
+            document.getElementById('editId').value = bolletta.id;
+            document.getElementById('numBolletta').value = bolletta.numero;
+            document.getElementById('dataScadenza').value = bolletta.scadenza;
+            document.getElementById('periodo').value = bolletta.periodo;
+            document.getElementById('totalePagare').value = bolletta.totale;
+            document.getElementById('consumo').value = bolletta.consumo.toFixed(3);
+            document.getElementById('noteBolletta').value = bolletta.note || "";
+            document.getElementById('linkBolletta').value = bolletta.link || "";
+            calcolaMedia();
+        }
+
+async function eliminaBolletta(id) {
+  if(!confirm("Eliminare questa bolletta?")) return;
+  await eliminaBollettaSuCloud(id);   // niente più localStorage
+  // onSnapshot si occuperà di aggiornare listaBollette e tabella
+}
+
+        // --- RENDER ---
+        function renderizzaTabella() {
+            const tbody = document.getElementById('tabellaBody');
+            const footer = document.getElementById('tabellaFooter');
+            
+            const filtroTipo = document.getElementById('filtroTipo').value;
+            const filtroAnno = document.getElementById('filtroAnno').value;
+            const filtroMese = document.getElementById('filtroMese').value;
+            
+            tbody.innerHTML = '';
+            
+            const bolletteFiltrate = listaBollette
+                .filter(b => {
+                    const data = new Date(b.scadenza);
+                    const annoMatch = (filtroAnno === 'Tutti') || (data.getFullYear().toString() === filtroAnno);
+                    const meseStr = (data.getMonth() + 1).toString().padStart(2, '0');
+                    const meseMatch = (filtroMese === 'Tutti') || (meseStr === filtroMese);
+                    const tipoMatch = (filtroTipo === 'Tutti') || (b.tipo === filtroTipo);
+                    return annoMatch && meseMatch && tipoMatch;
+                })
+                .sort((a,b) => new Date(b.scadenza) - new Date(a.scadenza));
+
+            if (bolletteFiltrate.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                footer.style.display = 'none';
+                return;
+            } else {
+                document.getElementById('emptyState').style.display = 'none';
+                footer.style.display = 'table-header-group'; // Nota: su mobile viene sovrascritto dal CSS a flex/block
+            }
+
+            let sommaSoldi = 0;
+            let sommaConsumi = 0;
+
+            bolletteFiltrate.forEach(bolletta => {
+                sommaSoldi += bolletta.totale;
+                sommaConsumi += bolletta.consumo;
+
+                const dataLeggibile = new Date(bolletta.scadenza).toLocaleDateString('it-IT');
+                let unita = 'kWh';
+                if(bolletta.tipo === 'Gas') unita = 'Smc';
+                if(bolletta.tipo === 'Acqua') unita = 'mc';
+                
+                const notaVisualizzata = bolletta.note ? bolletta.note : "-";
+                const linkHtml = bolletta.link ? 
+                    `<a href="${bolletta.link}" target="_blank" class="action-btn link-btn" title="Apri PDF">🔗</a>` : 
+                    '';
+
+                // AGGIUNTO ATTRIBUTO data-label PER IL CSS MOBILE
+                const riga = `
+                    <tr id="riga-${bolletta.id}">
+                        <td data-label="N. Fattura"><span class="fattura-id">${bolletta.numero}</span></td>
+                        <td data-label="Tipo"><span class="tag tag-${bolletta.tipo}">${bolletta.tipo}</span></td>
+                        <td data-label="Scadenza">${dataLeggibile}</td>
+                        <td data-label="Periodo" style="font-size:0.85em; color:#555;">${bolletta.periodo}</td>
+                        <td data-label="Note"><div class="note-text" title="${notaVisualizzata}">${notaVisualizzata}</div></td>
+                        <td data-label="Consumo">${bolletta.consumo.toFixed(3)} ${unita}</td>
+                        <td data-label="Totale"><strong>€ ${bolletta.totale.toFixed(2)}</strong></td>
+                        <td data-label="P. Unit.">€ ${bolletta.prezzoMedio.toFixed(4)}</td>
+                        <td class="action-cell">
+                            ${linkHtml}
+                            <button class="action-btn edit-btn" onclick="modificaBolletta(${bolletta.id})" title="Modifica">✏️</button>
+                            <button class="action-btn delete-btn" onclick="eliminaBolletta(${bolletta.id})" title="Elimina">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', riga);
+            });
+
+            document.getElementById('footTotale').textContent = '€ ' + sommaSoldi.toFixed(2);
+            if(filtroTipo === 'Tutti') {
+                document.getElementById('footConsumo').innerHTML = '<span style="color:#aaa; font-weight:normal; font-size:0.8em;">(filtra tipo)</span>';
+            } else {
+                let unit = (filtroTipo === 'Gas') ? 'Smc' : (filtroTipo === 'Acqua' ? 'mc' : 'kWh');
+                document.getElementById('footConsumo').textContent = sommaConsumi.toFixed(3) + ' ' + unit;
+            }
+        }
+    </script>
+	
+<script type="module">
+  // SDK modulari da CDN Firebase v9+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { 
+    getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot 
+  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+  import { 
+    getAuth, signInAnonymously, onAuthStateChanged 
+  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+
+  // CONFIG DEL TUO PROGETTO (quella che hai incollato)
+  const firebaseConfig = {
+    apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI",
+    authDomain: "bollettea2a-c99a3.firebaseapp.com",
+    projectId: "bollettea2a-c99a3",
+    storageBucket: "bollettea2a-c99a3.firebasestorage.app",
+    messagingSenderId: "714327541296",
+    appId: "1:714327541296:web:12e881c0799631ab230ff5",
+    measurementId: "G-TQT1L3W7VM"
+  };
+
+  // Inizializza Firebase
+  const app = initializeApp(firebaseConfig);                 // [web:41]
+  const db = getFirestore(app);                              // [web:21]
+  const auth = getAuth(app);                                 // [web:27]
+
+  // Login anonimo (un solo utente va benissimo)
+  signInAnonymously(auth).catch(console.error);              // [web:27]
+
+  onAuthStateChanged(auth, user => {
+    if (!user) return;
+    const uid = user.uid;
+
+    // Collezione dove salviamo le bollette di questo utente
+    const colRef = collection(db, 'users', uid, 'bollette'); // [web:21][web:22]
+
+    // --- SYNC FIRESTORE → listaBollette → UI ---
+    // Sostituisce il vecchio caricaDatiLocali() iniziale
+    onSnapshot(colRef, snapshot => {                         // realtime sync [web:22][web:26]
+      listaBollette = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      }));
+      renderizzaTabella();
+      if (typeof popolaFiltroAnni === 'function') {
+        popolaFiltroAnni();
+      }
+    });
+
+    // --- FUNZIONI FIRESTORE WRAPPER (usate dal tuo codice esistente) ---
+    window.salvaBollettaSuCloud = async function(bolletta, editId) {
+      if (editId) {
+        // update documento esistente
+        await setDoc(
+          doc(db, 'users', uid, 'bollette', String(editId)), 
+          bolletta, 
+          { merge: true }
+        );                                                   // [web:24]
+      } else {
+        // nuova bolletta, Firestore genera un id
+        const ref = await addDoc(colRef, bolletta);          // [web:24]
+        bolletta.id = ref.id;
+      }
+    };
+
+    window.eliminaBollettaSuCloud = async function(id) {
+      await deleteDoc(doc(db, 'users', uid, 'bollette', String(id))); // [web:22]
+    };
+  });
+</script>
+
+	
+</body>
+</html>
