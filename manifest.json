@@ -1,11 +1,11 @@
 {
   "name": "Archivio Bollette A2A",
   "short_name": "Bollette",
-  "start_url": "./index.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#f4f4f9",
   "theme_color": "#0056b3",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icons/icon-192x192.png",
