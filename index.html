@@ -776,11 +776,12 @@ async function salvaBolletta(e) {
   // --- 3. AUTENTICAZIONE E LISTENER ---
   onAuthStateChanged(auth, (user) => {
     if (user) {
-      uid = user.uid;
-      console.log("Utente connesso:", uid);
+  //    uid = user.uid;
+      console.log("Utente connesso (anonimo):", user.uid);
       
       // Avvia l'ascolto dei dati in tempo reale
-      const colRef = collection(db, 'users', uid, 'bollette');
+      const colRef = collection(db, 'bollette_condivise'); 
+	  
       onSnapshot(colRef, (snapshot) => {
         listaBollette = snapshot.docs.map(d => ({
           id: d.id, 
@@ -833,10 +834,10 @@ async function salvaBolletta(e) {
     try {
       if (editId) {
         // MODIFICA
-        await setDoc(doc(db, 'users', uid, 'bollette', editId), bolletta);
+        await setDoc(doc(db, 'bollette_condivise', editId), bolletta);
       } else {
         // NUOVO INSERIMENTO
-        await addDoc(collection(db, 'users', uid, 'bollette'), bolletta);
+        await addDoc(collection(db, 'bollette_condivise'), bolletta);
       }
       
       // Chiudi e pulisci
@@ -853,7 +854,7 @@ async function salvaBolletta(e) {
   window.eliminaBollettaSuCloud = async function(id) {
     if(!uid) return;
     try {
-      await deleteDoc(doc(db, 'users', uid, 'bollette', String(id)));
+      await deleteDoc(doc(db, 'bollette_condivise', String(id)));
     } catch (err) {
       console.error("Errore eliminazione:", err);
       alert("Impossibile eliminare: " + err.message);
