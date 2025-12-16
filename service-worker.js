@@ -1,5 +1,5 @@
 // Cambio nome versione per forzare l'aggiornamento immediato
-const CACHE_NAME = 'bollette-v4-fix'; 
+const CACHE_NAME = 'bollette-v5'; 
 
 const urlsToCache = [
   './',
