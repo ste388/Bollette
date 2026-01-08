@@ -1,25 +1,28 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Archivio Bollette A2A (Cloud)</title>
 
     <!-- ICONA DEL SITO (Favicon) -->
-<link rel="icon" type="image/x-icon" href="ico.ico">
+    <link rel="icon" type="image/x-icon" href="ico.ico">
 
-<!-- CONFIGURAZIONE PWA -->
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#0056b3">
-
-<!-- SUPPORTO iOS (Apple) -->
-<!-- Qui mettiamo il nome corretto del tuo file PNG -->
-<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <!-- CONFIGURAZIONE PWA -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0056b3">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 	
     <!-- Libreria PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     </script>
+
+    <!-- FIREBASE SDK (Versione Compatibile) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <style>
         :root { 
@@ -33,7 +36,7 @@
             --info: #17a2b8;
         }
         
-        * { box-sizing: border-box; } /* Gestione migliore delle dimensioni */
+        * { box-sizing: border-box; }
 
         body { 
             font-family: 'Segoe UI', sans-serif; 
@@ -93,7 +96,7 @@
         .full-width { grid-column: span 2; }
         
         label { margin-bottom: 5px; font-size: 0.85em; color: #666; font-weight: 600; }
-        input, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 1em; font-family: inherit; -webkit-appearance: none; } /* -webkit-appearance per iOS */
+        input, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 1em; font-family: inherit; -webkit-appearance: none; }
         
         textarea { resize: vertical; min-height: 80px; }
 
@@ -122,11 +125,10 @@
         .fattura-id { font-family: monospace; font-weight: bold; color: #666; background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
         .note-text { font-size: 0.9em; color: #666; font-style: italic; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        /* --- MEDIA QUERIES PER MOBILE (Smartphone) --- */
+        /* --- MEDIA QUERIES PER MOBILE --- */
         @media (max-width: 768px) {
             body { padding: 10px; }
 
-            /* Top Bar Mobile */
             .top-bar { flex-direction: column; align-items: stretch; gap: 20px; }
             .top-left { flex-direction: column; width: 100%; gap: 10px; }
             .backup-group { border-left: none; padding-left: 0; display: flex; justify-content: center; width: 100%; border-top: 1px solid #eee; padding-top: 10px;}
@@ -136,14 +138,10 @@
             .filter-group { width: 100%; }
             .filter-select { width: 100%; padding: 12px; }
 
-            /* Form Mobile */
-            .form-grid { grid-template-columns: 1fr; } /* Una colonna sola */
+            .form-grid { grid-template-columns: 1fr; }
             .full-width { grid-column: span 1; }
             
-            /* TABELLA RESPONSIVE (Card View) */
             table, thead, tbody, th, td, tr { display: block; }
-            
-            /* Nascondi header tabella classica */
             thead tr { position: absolute; top: -9999px; left: -9999px; }
             
             tr { margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
@@ -152,15 +150,14 @@
                 border: none;
                 border-bottom: 1px solid #eee; 
                 position: relative;
-                padding-left: 50%; /* Spazio per etichetta */
-                text-align: right; /* Valore a destra */
+                padding-left: 50%; 
+                text-align: right; 
                 padding-top: 12px;
                 padding-bottom: 12px;
             }
             
             td:last-child { border-bottom: none; text-align: center; padding-left: 10px; background: #f9f9f9; border-radius: 0 0 8px 8px;}
             
-            /* Etichette finte (Pseudo-elements) */
             td::before { 
                 position: absolute;
                 top: 12px;
@@ -171,15 +168,13 @@
                 text-align: left;
                 font-weight: bold;
                 color: #555;
-                content: attr(data-label); /* Prende il testo dall'attributo HTML */
+                content: attr(data-label);
             }
 
-            /* Footer totali in versione mobile */
             tfoot tr { display: flex; flex-direction: column; text-align: center; padding: 15px; background: #e3e8ee; border-radius: 8px; margin-top: 20px; border: 2px solid var(--primary); }
             tfoot td { padding: 5px; text-align: center; border: none; padding-left: 0; }
             tfoot td::before { position: static; display: block; text-align: center; margin-bottom: 2px; }
             
-            /* Nascondi la label "Totali Filtrati" standard e rendila visibile diversamente se serve */
             tfoot td:first-child { display: none; }
         }
     </style>
@@ -189,7 +184,7 @@
     <!-- TOP BAR -->
     <div class="top-bar">
         <div class="top-left">
-            <h2>📂 Archivio</h2>
+            <h2>📂 Archivio (Cloud)</h2>
             <button class="btn-new" onclick="apriFormInserimento()">➕ Nuova Bolletta</button>
             
             <div class="backup-group">
@@ -296,7 +291,7 @@
                     <textarea id="noteBolletta" placeholder="Es. Conguaglio, pagata in ritardo..."></textarea>
                 </div>
                 
-                <button type="submit" class="save-btn" id="btnSalva">💾 Salva Bolletta</button>
+                <button type="submit" class="save-btn" id="btnSalva">💾 Salva su Cloud</button>
             </div>
         </form>
     </div>
@@ -328,50 +323,75 @@
             </tfoot>
         </table>
         <div id="emptyState" class="empty-state" style="display:none;">
-            Nessuna bolletta trovata con questi filtri.
+            Nessuna bolletta trovata.
         </div>
     </div>
 
     <script>
-	
-	if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
-      console.log('ServiceWorker registration successful with scope: ', registration.scope);
-    }, function(err) {
-      console.log('ServiceWorker registration failed: ', err);
-    });
-  });
-}
-	
+        // --- CONFIGURAZIONE FIREBASE ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI",
+          authDomain: "bollettea2a-c99a3.firebaseapp.com",
+          databaseURL: "https://bollettea2a-c99a3-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "bollettea2a-c99a3",
+          storageBucket: "bollettea2a-c99a3.firebasestorage.app",
+          messagingSenderId: "714327541296",
+          appId: "1:714327541296:web:12e881c0799631ab230ff5",
+          measurementId: "G-TQT1L3W7VM"
+        };
+
+        // Inizializza Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const dbRef = db.ref('bollette');
+
+        // --- SERVICE WORKER (PWA) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
+                    console.log('SW registrato.');
+                }, function(err) {
+                    console.log('SW errore: ', err);
+                });
+            });
+        }
+        
         // --- STATO APPLICAZIONE ---
         let tipoSelezionato = 'Energia'; 
         let listaBollette = [];
         const mesiMap = { 'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04', 'maggio': '05', 'giugno': '06', 'luglio': '07', 'agosto': '08', 'settembre': '09', 'ottobre': '10', 'novembre': '11', 'dicembre': '12' };
 
         window.onload = function() {
-            caricaDatiLocali();
-            popolaFiltroAnni(); 
-            renderizzaTabella();
+            ascoltaDatabase(); 
         };
 
-        function caricaDatiLocali() {
-            const saved = localStorage.getItem('db_bollette_a2a');
-            if (saved) {
-                listaBollette = JSON.parse(saved);
-            }
+        // --- ASCOLTATORE DATABASE REALTIME ---
+        function ascoltaDatabase() {
+            const statusMsg = document.getElementById('emptyState');
+            statusMsg.style.display = 'block';
+            statusMsg.textContent = "Connessione al database in corso...";
+
+            dbRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                listaBollette = [];
+                
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        listaBollette.push(data[key]);
+                    });
+                }
+                
+                popolaFiltroAnni(); 
+                renderizzaTabella();
+            }, (error) => {
+                console.error("Errore DB:", error);
+                statusMsg.textContent = "Errore di connessione: " + error.message;
+            });
         }
 
-        function salvaDatiLocali() {
-            localStorage.setItem('db_bollette_a2a', JSON.stringify(listaBollette));
-        }
-
-        // --- EXPORT / IMPORT FUNZIONI ---
+        // --- EXPORT / IMPORT ---
         function esportaDati() {
-            if(listaBollette.length === 0) {
-                alert("Non ci sono dati da esportare!");
-                return;
-            }
+            if(listaBollette.length === 0) { alert("Nessun dato da esportare!"); return; }
             const dataStr = JSON.stringify(listaBollette, null, 2);
             const blob = new Blob([dataStr], {type: "application/json"});
             const url = URL.createObjectURL(blob);
@@ -393,26 +413,30 @@
                 try {
                     const datiImportati = JSON.parse(e.target.result);
                     if(Array.isArray(datiImportati)) {
-                        if(confirm(`Trovate ${datiImportati.length} bollette. Vuoi sovrascrivere l'archivio attuale?`)) {
-                            listaBollette = datiImportati;
-                            salvaDatiLocali();
-                            popolaFiltroAnni();
-                            renderizzaTabella();
-                            alert("Importazione completata con successo!");
+                        if(confirm(`Trovate ${datiImportati.length} bollette. Vuoi sovrascrivere il Database Cloud?`)) {
+                            // Converti array in oggetto per Firebase
+                            const updateObj = {};
+                            datiImportati.forEach(b => {
+                                updateObj[b.id] = b;
+                            });
+                            
+                            dbRef.set(updateObj)
+                                .then(() => alert("Importazione completata!"))
+                                .catch(err => alert("Errore: " + err));
                         }
                     } else {
-                        alert("Il file non è valido (formato errato).");
+                        alert("File non valido.");
                     }
                 } catch(err) {
                     console.error(err);
-                    alert("Errore nella lettura del file JSON.");
+                    alert("Errore JSON.");
                 }
             };
             reader.readAsText(file);
             input.value = ''; 
         }
 
-        // --- POPOLA FILTRO ANNI ---
+        // --- GESTIONE INTERFACCIA ---
         function popolaFiltroAnni() {
             const selectAnno = document.getElementById('filtroAnno');
             const annoCorrente = new Date().getFullYear();
@@ -428,11 +452,10 @@
             });
         }
 
-        // --- GESTIONE INTERFACCIA ---
         function apriFormInserimento() {
             document.getElementById('form-wrapper').style.display = 'block';
             document.getElementById('editId').value = ""; 
-            document.getElementById('btnSalva').textContent = "💾 Salva Bolletta";
+            document.getElementById('btnSalva').textContent = "💾 Salva su Cloud";
             document.getElementById('form-title').textContent = "Inserisci Nuova Bolletta";
             document.getElementById('bollettaForm').reset();
             selezionaTipo('Energia'); 
@@ -620,17 +643,18 @@
             calcolaMedia();
         }
 
-        // --- CRUD ---
+        // --- CRUD FIREBASE ---
         function salvaBolletta(e) {
             e.preventDefault();
             const editId = document.getElementById('editId').value;
             const totale = parseFloat(document.getElementById('totalePagare').value);
             const consumo = parseFloat(document.getElementById('consumo').value);
-            const note = document.getElementById('noteBolletta').value;
-            const link = document.getElementById('linkBolletta').value;
+            
+            // Crea un ID stringa (timestamp) se è nuovo, altrimenti usa l'esistente
+            const idBolletta = editId ? editId : Date.now().toString();
             
             const bolletta = {
-                id: editId ? parseInt(editId) : Date.now(),
+                id: idBolletta,
                 tipo: tipoSelezionato,
                 numero: document.getElementById('numBolletta').value,
                 scadenza: document.getElementById('dataScadenza').value,
@@ -638,26 +662,26 @@
                 totale: totale,
                 consumo: consumo,
                 prezzoMedio: (consumo > 0) ? (totale / consumo) : 0,
-                note: note,
-                link: link
+                note: document.getElementById('noteBolletta').value,
+                link: document.getElementById('linkBolletta').value
             };
 
-            if (editId) {
-                const index = listaBollette.findIndex(b => b.id == editId);
-                if (index !== -1) listaBollette[index] = bolletta;
-            } else {
-                listaBollette.push(bolletta);
-            }
-
-            salvaDatiLocali();
-            popolaFiltroAnni(); 
-            renderizzaTabella();
-            chiudiForm();
+            // Scrittura su Firebase
+            dbRef.child(idBolletta).set(bolletta)
+                .then(() => {
+                    chiudiForm();
+                    // Il renderizzaTabella verrà chiamato automaticamente dal listener
+                })
+                .catch((error) => {
+                    alert("Errore salvataggio: " + error.message);
+                });
         }
 
         function modificaBolletta(id) {
-            const bolletta = listaBollette.find(b => b.id === id);
+            // Nota: id arriva come stringa
+            const bolletta = listaBollette.find(b => b.id == id);
             if (!bolletta) return;
+            
             apriFormInserimento(); 
             selezionaTipo(bolletta.tipo);
             document.getElementById('form-title').textContent = "Modifica Bolletta";
@@ -673,17 +697,22 @@
         }
 
         function eliminaBolletta(id) {
-            if(!confirm("Eliminare questa bolletta?")) return;
-            listaBollette = listaBollette.filter(b => b.id !== id);
-            salvaDatiLocali();
-            popolaFiltroAnni();
-            renderizzaTabella();
+            if(!confirm("Eliminare definitivamente questa bolletta dal Cloud?")) return;
+            
+            dbRef.child(id).remove()
+                .then(() => {
+                    console.log("Eliminato");
+                })
+                .catch((error) => {
+                    alert("Errore eliminazione: " + error.message);
+                });
         }
 
         // --- RENDER ---
         function renderizzaTabella() {
             const tbody = document.getElementById('tabellaBody');
             const footer = document.getElementById('tabellaFooter');
+            const emptyState = document.getElementById('emptyState');
             
             const filtroTipo = document.getElementById('filtroTipo').value;
             const filtroAnno = document.getElementById('filtroAnno').value;
@@ -703,12 +732,15 @@
                 .sort((a,b) => new Date(b.scadenza) - new Date(a.scadenza));
 
             if (bolletteFiltrate.length === 0) {
-                document.getElementById('emptyState').style.display = 'block';
+                emptyState.style.display = 'block';
+                if(listaBollette.length > 0) emptyState.textContent = "Nessuna bolletta trovata con questi filtri.";
+                else emptyState.textContent = "Nessuna bolletta in archivio.";
+                
                 footer.style.display = 'none';
                 return;
             } else {
-                document.getElementById('emptyState').style.display = 'none';
-                footer.style.display = 'table-header-group'; // Nota: su mobile viene sovrascritto dal CSS a flex/block
+                emptyState.style.display = 'none';
+                footer.style.display = 'table-header-group'; 
             }
 
             let sommaSoldi = 0;
@@ -728,7 +760,7 @@
                     `<a href="${bolletta.link}" target="_blank" class="action-btn link-btn" title="Apri PDF">🔗</a>` : 
                     '';
 
-                // AGGIUNTO ATTRIBUTO data-label PER IL CSS MOBILE
+                // IMPORTANTE: Le chiamate a modifica ed elimina ora passano l'ID come stringa tra apici '${id}'
                 const riga = `
                     <tr id="riga-${bolletta.id}">
                         <td data-label="N. Fattura"><span class="fattura-id">${bolletta.numero}</span></td>
@@ -741,8 +773,8 @@
                         <td data-label="P. Unit.">€ ${bolletta.prezzoMedio.toFixed(4)}</td>
                         <td class="action-cell">
                             ${linkHtml}
-                            <button class="action-btn edit-btn" onclick="modificaBolletta(${bolletta.id})" title="Modifica">✏️</button>
-                            <button class="action-btn delete-btn" onclick="eliminaBolletta(${bolletta.id})" title="Elimina">🗑️</button>
+                            <button class="action-btn edit-btn" onclick="modificaBolletta('${bolletta.id}')" title="Modifica">✏️</button>
+                            <button class="action-btn delete-btn" onclick="eliminaBolletta('${bolletta.id}')" title="Elimina">🗑️</button>
                         </td>
                     </tr>
                 `;
