@@ -20,8 +20,9 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     </script>
 
-    <!-- FIREBASE SDK (Versione Compatibile) -->
+    <!-- FIREBASE SDK (Versione Compatibile + Auth) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <style>
@@ -340,8 +341,9 @@
           measurementId: "G-TQT1L3W7VM"
         };
 
-        // Inizializza Firebase
+        // Inizializza Firebase e Auth
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.database();
         const dbRef = db.ref('bollette');
 
@@ -362,13 +364,34 @@
         const mesiMap = { 'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04', 'maggio': '05', 'giugno': '06', 'luglio': '07', 'agosto': '08', 'settembre': '09', 'ottobre': '10', 'novembre': '11', 'dicembre': '12' };
 
         window.onload = function() {
-            ascoltaDatabase(); 
+            const statusMsg = document.getElementById('emptyState');
+            statusMsg.style.display = 'block';
+            statusMsg.textContent = "Autenticazione in corso...";
+
+            // Autenticazione automatica con le credenziali fornite
+            auth.signInWithEmailAndPassword('ferrari.ste100@gmail.com', 'Verolanuova80!')
+                .then((userCredential) => {
+                    console.log("Autenticato come:", userCredential.user.email);
+                    ascoltaDatabase();
+                })
+                .catch((error) => {
+                    console.warn("Tentativo di accesso fallito, provo a registrare l'utente...", error.code);
+                    // Se l'utente non è ancora censito in Firebase Auth, lo creiamo al volo la prima volta
+                    auth.createUserWithEmailAndPassword('ferrari.ste100@gmail.com', 'Verolanuova80!')
+                        .then((userCredential) => {
+                            console.log("Utente creato con successo:", userCredential.user.email);
+                            ascoltaDatabase();
+                        })
+                        .catch((err) => {
+                            console.error("Errore Auth:", err);
+                            statusMsg.textContent = "Errore di autenticazione: " + err.message;
+                        });
+                });
         };
 
         // --- ASCOLTATORE DATABASE REALTIME ---
         function ascoltaDatabase() {
             const statusMsg = document.getElementById('emptyState');
-            statusMsg.style.display = 'block';
             statusMsg.textContent = "Connessione al database in corso...";
 
             dbRef.on('value', (snapshot) => {
@@ -414,7 +437,6 @@
                     const datiImportati = JSON.parse(e.target.result);
                     if(Array.isArray(datiImportati)) {
                         if(confirm(`Trovate ${datiImportati.length} bollette. Vuoi sovrascrivere il Database Cloud?`)) {
-                            // Converti array in oggetto per Firebase
                             const updateObj = {};
                             datiImportati.forEach(b => {
                                 updateObj[b.id] = b;
@@ -440,7 +462,7 @@
         function popolaFiltroAnni() {
             const selectAnno = document.getElementById('filtroAnno');
             const annoCorrente = new Date().getFullYear();
-            const anniPresenti = new Set(listaBollette.map(b => b.scadenza.split('-')[0]));
+            const anniPresenti = new Set(listaBollette.map(b => b.scadenza ? b.scadenza.split('-')[0] : annoCorrente.toString()));
             anniPresenti.add(annoCorrente.toString()); 
             while (selectAnno.options.length > 1) { selectAnno.remove(1); }
             const anniOrdinati = Array.from(anniPresenti).sort().reverse();
@@ -650,7 +672,6 @@
             const totale = parseFloat(document.getElementById('totalePagare').value);
             const consumo = parseFloat(document.getElementById('consumo').value);
             
-            // Crea un ID stringa (timestamp) se è nuovo, altrimenti usa l'esistente
             const idBolletta = editId ? editId : Date.now().toString();
             
             const bolletta = {
@@ -666,11 +687,9 @@
                 link: document.getElementById('linkBolletta').value
             };
 
-            // Scrittura su Firebase
             dbRef.child(idBolletta).set(bolletta)
                 .then(() => {
                     chiudiForm();
-                    // Il renderizzaTabella verrà chiamato automaticamente dal listener
                 })
                 .catch((error) => {
                     alert("Errore salvataggio: " + error.message);
@@ -678,7 +697,6 @@
         }
 
         function modificaBolletta(id) {
-            // Nota: id arriva come stringa
             const bolletta = listaBollette.find(b => b.id == id);
             if (!bolletta) return;
             
@@ -722,6 +740,7 @@
             
             const bolletteFiltrate = listaBollette
                 .filter(b => {
+                    if (!b.scadenza) return false;
                     const data = new Date(b.scadenza);
                     const annoMatch = (filtroAnno === 'Tutti') || (data.getFullYear().toString() === filtroAnno);
                     const meseStr = (data.getMonth() + 1).toString().padStart(2, '0');
@@ -760,7 +779,6 @@
                     `<a href="${bolletta.link}" target="_blank" class="action-btn link-btn" title="Apri PDF">🔗</a>` : 
                     '';
 
-                // IMPORTANTE: Le chiamate a modifica ed elimina ora passano l'ID come stringa tra apici '${id}'
                 const riga = `
                     <tr id="riga-${bolletta.id}">
                         <td data-label="N. Fattura"><span class="fattura-id">${bolletta.numero}</span></td>
