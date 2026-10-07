@@ -329,65 +329,7 @@
     </div>
 
     <script>
-        // --- CONFIGURAZIONE FIREBASE ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI",
-          authDomain: "bollettea2a-c99a3.firebaseapp.com",
-          databaseURL: "https://bollettea2a-c99a3-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "bollettea2a-c99a3",
-          storageBucket: "bollettea2a-c99a3.firebasestorage.app",
-          messagingSenderId: "714327541296",
-          appId: "1:714327541296:web:12e881c0799631ab230ff5",
-          measurementId: "G-TQT1L3W7VM"
-        };
-
-        // Inizializza Firebase e Auth
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.database();
-        const dbRef = db.ref('bollette');
-
-        // --- SERVICE WORKER (PWA) ---
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
-                    console.log('SW registrato.');
-                }, function(err) {
-                    console.log('SW errore: ', err);
-                });
-            });
-        }
-        
-        // --- STATO APPLICAZIONE ---
-        let tipoSelezionato = 'Energia'; 
-        let listaBollette = [];
-        const mesiMap = { 'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04', 'maggio': '05', 'giugno': '06', 'luglio': '07', 'agosto': '08', 'settembre': '09', 'ottobre': '10', 'novembre': '11', 'dicembre': '12' };
-
-        window.onload = function() {
-            const statusMsg = document.getElementById('emptyState');
-            statusMsg.style.display = 'block';
-            statusMsg.textContent = "Autenticazione in corso...";
-
-            // Autenticazione automatica con le credenziali fornite
-            auth.signInWithEmailAndPassword('ferrari.ste100@gmail.com', 'Verolanuova80!')
-                .then((userCredential) => {
-                    console.log("Autenticato come:", userCredential.user.email);
-                    ascoltaDatabase();
-                })
-                .catch((error) => {
-                    console.warn("Tentativo di accesso fallito, provo a registrare l'utente...", error.code);
-                    // Se l'utente non è ancora censito in Firebase Auth, lo creiamo al volo la prima volta
-                    auth.createUserWithEmailAndPassword('ferrari.ste100@gmail.com', 'Verolanuova80!')
-                        .then((userCredential) => {
-                            console.log("Utente creato con successo:", userCredential.user.email);
-                            ascoltaDatabase();
-                        })
-                        .catch((err) => {
-                            console.error("Errore Auth:", err);
-                            statusMsg.textContent = "Errore di autenticazione: " + err.message;
-                        });
-                });
-        };
+        CONFIGURAZIONE
 
         // --- ASCOLTATORE DATABASE REALTIME ---
         function ascoltaDatabase() {
