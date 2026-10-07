@@ -329,7 +329,62 @@
     </div>
 
     <script>
-        CONFIGURAZIONE
+        // --- CONFIGURAZIONE FIREBASE ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDLDrslkvr9W99WoOgTLTZPVAGmUbfRtRI",
+          authDomain: "bollettea2a-c99a3.firebaseapp.com",
+          databaseURL: "https://bollettea2a-c99a3-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "bollettea2a-c99a3",
+          storageBucket: "bollettea2a-c99a3.firebasestorage.app",
+          messagingSenderId: "714327541296",
+          appId: "1:714327541296:web:12e881c0799631ab230ff5",
+          measurementId: "G-TQT1L3W7VM"
+        };
+
+        // Inizializza Firebase e Auth
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+        const dbRef = db.ref('bollette');
+
+        // --- SERVICE WORKER (PWA) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
+                    console.log('SW registrato.');
+                }, function(err) {
+                    console.log('SW errore: ', err);
+                });
+            });
+        }
+        
+        // --- STATO APPLICAZIONE ---
+        let tipoSelezionato = 'Energia'; 
+        let listaBollette = [];
+        const mesiMap = { 'gennaio': '01', 'febbraio': '02', 'marzo': '03', 'aprile': '04', 'maggio': '05', 'giugno': '06', 'luglio': '07', 'agosto': '08', 'settembre': '09', 'ottobre': '10', 'novembre': '11', 'dicembre': '12' };
+
+        window.onload = function() {
+            const statusMsg = document.getElementById('emptyState');
+            statusMsg.style.display = 'block';
+            statusMsg.textContent = "Verifica autenticazione in corso...";
+
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    console.log("Utente autenticato:", user.email);
+                    ascoltaDatabase();
+                } else {
+                    auth.signInWithEmailAndPassword('ferrari.ste100@gmail.com', 'Verolanuova80!')
+                        .catch((error) => {
+                            console.warn("Login fallito, provo la registrazione...", error.code);
+                            auth.createUserWithEmailAndPassword('ferrari.ste100@gmail.com', 'Verolanuova80!')
+                                .catch((err) => {
+                                    console.error("Errore Auth:", err);
+                                    statusMsg.textContent = "Errore di autenticazione: " + err.message;
+                                });
+                        });
+                }
+            });
+        };
 
         // --- ASCOLTATORE DATABASE REALTIME ---
         function ascoltaDatabase() {
@@ -400,12 +455,46 @@
             input.value = ''; 
         }
 
+        // --- HELPER DATE ROBUSTO ---
+        function estraiDataDettagli(scadenzaStr) {
+            if (!scadenzaStr) return { anno: '', mese: '', dataObj: null };
+            // Se formato YYYY-MM-DD
+            if (scadenzaStr.includes('-')) {
+                const p = scadenzaStr.split('-');
+                return { anno: p[0], mese: p[1], dataObj: new Date(scadenzaStr) };
+            }
+            // Se formato DD/MM/YYYY
+            if (scadenzaStr.includes('/')) {
+                const p = scadenzaStr.split('/');
+                if (p.length === 3) {
+                    let anno = p[2];
+                    if (anno.length === 2) anno = "20" + anno;
+                    return { anno: anno, mese: p[1], dataObj: new Date(`${anno}-${p[1]}-${p[0]}`) };
+                }
+            }
+            const d = new Date(scadenzaStr);
+            if (!isNaN(d.getTime())) {
+                return { 
+                    anno: d.getFullYear().toString(), 
+                    mese: (d.getMonth() + 1).toString().padStart(2, '0'), 
+                    dataObj: d 
+                };
+            }
+            return { anno: '', mese: '', dataObj: null };
+        }
+
         // --- GESTIONE INTERFACCIA ---
         function popolaFiltroAnni() {
             const selectAnno = document.getElementById('filtroAnno');
             const annoCorrente = new Date().getFullYear();
-            const anniPresenti = new Set(listaBollette.map(b => b.scadenza ? b.scadenza.split('-')[0] : annoCorrente.toString()));
-            anniPresenti.add(annoCorrente.toString()); 
+            const anniPresenti = new Set();
+            anniPresenti.add(annoCorrente.toString());
+            
+            listaBollette.forEach(b => {
+                const info = estraiDataDettagli(b.scadenza);
+                if (info.anno) anniPresenti.add(info.anno);
+            });
+
             while (selectAnno.options.length > 1) { selectAnno.remove(1); }
             const anniOrdinati = Array.from(anniPresenti).sort().reverse();
             anniOrdinati.forEach(anno => {
@@ -607,35 +696,40 @@
             calcolaMedia();
         }
 
-        // --- CRUD FIREBASE ---
+        // --- CRUD FIREBASE (PROTETTO DA TRY/CATCH) ---
         function salvaBolletta(e) {
             e.preventDefault();
-            const editId = document.getElementById('editId').value;
-            const totale = parseFloat(document.getElementById('totalePagare').value);
-            const consumo = parseFloat(document.getElementById('consumo').value);
-            
-            const idBolletta = editId ? editId : Date.now().toString();
-            
-            const bolletta = {
-                id: idBolletta,
-                tipo: tipoSelezionato,
-                numero: document.getElementById('numBolletta').value,
-                scadenza: document.getElementById('dataScadenza').value,
-                periodo: document.getElementById('periodo').value, 
-                totale: totale,
-                consumo: consumo,
-                prezzoMedio: (consumo > 0) ? (totale / consumo) : 0,
-                note: document.getElementById('noteBolletta').value,
-                link: document.getElementById('linkBolletta').value
-            };
+            try {
+                const editId = document.getElementById('editId').value;
+                const totale = parseFloat(document.getElementById('totalePagare').value);
+                const consumo = parseFloat(document.getElementById('consumo').value);
+                
+                const idBolletta = editId ? editId : Date.now().toString();
+                
+                const bolletta = {
+                    id: idBolletta,
+                    tipo: tipoSelezionato,
+                    numero: document.getElementById('numBolletta').value,
+                    scadenza: document.getElementById('dataScadenza').value,
+                    periodo: document.getElementById('periodo').value, 
+                    totale: totale,
+                    consumo: consumo,
+                    prezzoMedio: (consumo > 0) ? (totale / consumo) : 0,
+                    note: document.getElementById('noteBolletta').value,
+                    link: document.getElementById('linkBolletta').value
+                };
 
-            dbRef.child(idBolletta).set(bolletta)
-                .then(() => {
-                    chiudiForm();
-                })
-                .catch((error) => {
-                    alert("Errore salvataggio: " + error.message);
-                });
+                dbRef.child(idBolletta).set(bolletta)
+                    .then(() => {
+                        chiudiForm();
+                    })
+                    .catch((error) => {
+                        alert("Errore salvataggio Firebase: " + error.message);
+                    });
+            } catch (err) {
+                console.error("Errore salvataggio:", err);
+                alert("Errore imprevisto durante il salvataggio: " + err.message);
+            }
         }
 
         function modificaBolletta(id) {
@@ -682,15 +776,19 @@
             
             const bolletteFiltrate = listaBollette
                 .filter(b => {
-                    if (!b.scadenza) return false;
-                    const data = new Date(b.scadenza);
-                    const annoMatch = (filtroAnno === 'Tutti') || (data.getFullYear().toString() === filtroAnno);
-                    const meseStr = (data.getMonth() + 1).toString().padStart(2, '0');
-                    const meseMatch = (filtroMese === 'Tutti') || (meseStr === filtroMese);
+                    const info = estraiDataDettagli(b.scadenza);
+                    if (!info.anno) return false;
+
+                    const annoMatch = (filtroAnno === 'Tutti') || (info.anno === filtroAnno);
+                    const meseMatch = (filtroMese === 'Tutti') || (info.mese === filtroMese);
                     const tipoMatch = (filtroTipo === 'Tutti') || (b.tipo === filtroTipo);
                     return annoMatch && meseMatch && tipoMatch;
                 })
-                .sort((a,b) => new Date(b.scadenza) - new Date(a.scadenza));
+                .sort((a,b) => {
+                    const infoA = estraiDataDettagli(a.scadenza);
+                    const infoB = estraiDataDettagli(b.scadenza);
+                    return (infoB.dataObj || 0) - (infoA.dataObj || 0);
+                });
 
             if (bolletteFiltrate.length === 0) {
                 emptyState.style.display = 'block';
@@ -711,7 +809,9 @@
                 sommaSoldi += bolletta.totale;
                 sommaConsumi += bolletta.consumo;
 
-                const dataLeggibile = new Date(bolletta.scadenza).toLocaleDateString('it-IT');
+                const info = estraiDataDettagli(bolletta.scadenza);
+                const dataLeggibile = info.dataObj ? info.dataObj.toLocaleDateString('it-IT') : bolletta.scadenza;
+                
                 let unita = 'kWh';
                 if(bolletta.tipo === 'Gas') unita = 'Smc';
                 if(bolletta.tipo === 'Acqua') unita = 'mc';
